@@ -70,16 +70,10 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 	@BeforeClass
 	public static void beforeTestClass() {
 		System.setProperty("page.size", "1000");
-
-		// Set default water-mark expression to current time
-		System.clearProperty("watermark.default.expression");
-		DateTime now = new DateTime(DateTimeZone.UTC);
-		DateTimeFormatter dateFormat = DateTimeFormat
-				.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-		System.setProperty("watermark.default.expression",
-				now.toString(dateFormat));
-
-		System.setProperty("account.sync.policy", "");
+		System.setProperty("db.jdbcUrl", DBCREATOR.getDatabaseUrlWithName());
+		DBCREATOR.setUpDatabase();
+		
+		System.setProperty("account.sync.policy", "syncAccount");
 	}
 	
 	@Before
