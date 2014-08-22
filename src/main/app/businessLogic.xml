@@ -37,7 +37,6 @@ http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schem
                         <db:parameterized-query><![CDATA[SELECT ID, Name FROM Contact WHERE Name = #[payload['Name']]]]></db:parameterized-query>
                     </db:select>
                 </enricher>
-                <logger message="22222 #[recordVars['contactInDatabase']]    3333333   #[payload]" level="INFO" doc:name="Logger"/>
             </batch:step>
 
             <batch:step name="trasformContacts" >
@@ -45,17 +44,13 @@ http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schem
 
             </batch:step>
             <batch:step name="updateContactsInDatabaseStep" accept-expression="!(payload is NullPayload) &amp;&amp; !(recordVars['contactInDatabase'] is NullPayload)">
-                <logger message="updating record #[recordVars['contactInDatabase']]" level="INFO" doc:name="Logger"/>
                 <expression-component doc:name="prepare contact for update"><![CDATA[payload['ID'] = recordVars['contactInDatabase'] is NullPayload ? null : recordVars['contactInDatabase']['ID']]]></expression-component>
                 <batch:commit size="200" doc:name="Batch Commit">
                     <db:update config-ref="Database" bulkMode="true" doc:name="update contacts in Database">
-                        <db:parameterized-query><![CDATA[UPDATE `mulesoft`.`contact`
+                        <db:parameterized-query><![CDATA[UPDATE Contact
 SET
 `FirstName` = #[payload['FirstName']],
 `LastName` = #[payload['LastName']],
-`Phone` = #[payload['Phone']],
-`SalesforceId` = #[payload['Id']],
-`LastModifiedById` = #[payload['FirstName']],
 `LastModifiedDate` = CURRENT_TIMESTAMP,
 `Name` = #[payload['Name']],
 `Email` = #[payload['Email']]
@@ -68,27 +63,8 @@ WHERE `ID` = #[payload['ID']];]]></db:parameterized-query>
             <batch:step name="insertContactsToDatabaseStep" accept-expression="!(payload is NullPayload) &amp;&amp; recordVars['contactInDatabase'] is NullPayload">
                 <batch:commit size="200" doc:name="Batch Commit">
                     <db:insert config-ref="Database" bulkMode="true" doc:name="insert contacts to Database">
-                        <db:parameterized-query><![CDATA[INSERT INTO `mulesoft`.`contact`
-(
-`FirstName`,
-`LastName`,
-`Phone`,
-`SalesforceId`,
-`LastModifiedById`,
-`LastModifiedDate`,
-`Name`,
-`Email`)
-VALUES
-(
-#[payload['FirstName']],
-#[payload['LastName']],
-#[payload['Phone']],
-#[payload['Id']],
-'mule@localhost',
-CURRENT_TIMESTAMP,
-#[payload['Name']],
-#[payload['Email']]
-);]]></db:parameterized-query>
+                        <db:parameterized-query><![CDATA[INSERT INTO Contact (FirstName, LastName, LastModifiedById, LastModifiedDate, Name)
+VALUES (#[payload['FirstName']], #[payload['LastName']], 'mule@localhost', CURRENT_TIMESTAMP, #[payload['Name']])]]></db:parameterized-query>
 
 
                     </db:insert>

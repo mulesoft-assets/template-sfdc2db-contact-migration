@@ -60,6 +60,7 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 	private static final String DATABASE_NAME = "SFDC2DBContactMigration" + new Long(new Date().getTime()).toString();
 	private static final MySQLDbCreator DBCREATOR = new MySQLDbCreator(DATABASE_NAME, PATH_TO_SQL_SCRIPT, PATH_TO_TEST_PROPERTIES);
 	private String name = "";
+	
 	private SubflowInterceptingChainLifecycleWrapper retrieveContactFromDatabaseFlow;
 	private SubflowInterceptingChainLifecycleWrapper createContactInAFlow;
 	private SubflowInterceptingChainLifecycleWrapper createContactInBFlow;
@@ -71,8 +72,6 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 	public static void beforeTestClass() {
 		System.setProperty("page.size", "1000");
 		System.setProperty("db.jdbcUrl", DBCREATOR.getDatabaseUrlWithName());
-		DBCREATOR.setUpDatabase();
-		
 		System.setProperty("account.sync.policy", "syncAccount");
 	}
 	
@@ -80,10 +79,8 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 	public void setUp() throws Exception {
 		getAndInitializeFlows();
 		DBCREATOR.setUpDatabase();
-		
 		batchTestHelper = new BatchTestHelper(muleContext);
 		
-
 		name = ANYPOINT_TEMPLATE_NAME + "_" + UUID.getUUID();
 		// Build test contacts
 		SfdcObjectBuilder contact = aContact()
@@ -157,11 +154,8 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 
 	@Test
 	public void testMainFlow() throws MuleException, Exception {
-		System.err.println("AAAA");
-		
-		// Execution
-		runFlow("triggerFlow");
-		executeWaitAndAssertBatchJob("triggerFlow");
+		runFlow(INBOUND_FLOW_NAME);
+		executeWaitAndAssertBatchJob(INBOUND_FLOW_NAME);
 		
 		Map<String, Object> contactInDb = new HashMap<String, Object>();
 		contactInDb.put("Name", name);

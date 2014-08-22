@@ -73,7 +73,8 @@ public class MySQLDbCreator {
 					createStatement.append(strLine);
 				}
 			}
-			stmt.addBatch(createStatement.toString());
+			String sql = createStatement.toString();
+			stmt.addBatch(sql);
 			in.close();
 			stmt.executeBatch();
 			System.out.println("Success");
