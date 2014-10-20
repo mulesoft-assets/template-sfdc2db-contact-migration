@@ -11,14 +11,14 @@
 	<groupId>org.mule.templates</groupId>
 	<artifactId>template-sfdc2db-contact-migration</artifactId>
 	<packaging>mule</packaging>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.0.0</version>
     <name>template-sfdc2db-contact-migration Anypoint Template Project</name>
 
 	<scm>
 		<connection>scm:git:https://github.com/mulesoft/template-sfdc2db-contact-migration.git</connection>
 		<developerConnection>scm:git:https://github.com/mulesoft/template-sfdc2db-contact-migration.git</developerConnection>
 		<url>https://github.com/mulesoft/template-sfdc2db-contact-migration</url>
-	  <tag>HEAD</tag>
+	  <tag>v1.0.0</tag>
   	</scm>
 
 
