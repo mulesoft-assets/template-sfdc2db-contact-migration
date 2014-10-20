@@ -26,7 +26,7 @@ http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schem
 
 
  <batch:job name="migrateAccountsBatch">
-        <batch:threading-profile poolExhaustedAction="WAIT"/>
+        <batch:threading-profile poolExhaustedAction="WAIT" threadWaitTimeout="-1"/>
         <batch:input>
             <sfdc:query config-ref="Salesforce" query="dsql:SELECT Id, Name, FirstName, LastName, Phone, AccountId, Account.Name, LastModifiedDate FROM Contact" fetchSize="${page.size}" doc:name="Contacts from Salesforce instance"/>
         </batch:input> 

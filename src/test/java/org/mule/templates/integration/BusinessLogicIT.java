@@ -14,10 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -33,8 +29,6 @@ import org.mule.templates.builders.SfdcObjectBuilder;
 import org.mule.templates.db.MySQLDbCreator;
 import org.mule.util.UUID;
 
-import com.google.common.collect.MapDifference;
-import com.google.common.collect.Maps;
 import com.mulesoft.module.batch.BatchTestHelper;
 import com.sforce.soap.partner.SaveResult;
 
@@ -48,7 +42,7 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 
 	private static final String INBOUND_FLOW_NAME = "triggerFlow";
 	private static final String ANYPOINT_TEMPLATE_NAME = "sfdc2db-contact-migration";
-	private static final int TIMEOUT_MILLIS = 60;
+	private static final int TIMEOUT_MILLIS = 60000;
 
 	private static List<String> contactsCreatedInA = new ArrayList<String>();
 	private static List<String> contactsCreatedInB = new ArrayList<String>();
@@ -164,16 +158,6 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 		Assert.assertTrue(response.get("Name").equals(name));
 	}
 	
-
-	private Object queryContact(Map<String, Object> contact,
-			InterceptingChainLifecycleWrapper queryContactFlow)
-			throws MuleException, Exception {
-		return queryContactFlow
-				.process(
-						getTestEvent(contact,
-								MessageExchangePattern.REQUEST_RESPONSE))
-				.getMessage().getPayload();
-	}
 
 	private String createTestContactsInSfdcSandbox(Map<String, Object> contact,
 			InterceptingChainLifecycleWrapper createContactFlow)
