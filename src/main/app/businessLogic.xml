@@ -10,7 +10,7 @@ xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc"
 xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp"
 xmlns:json="http://www.mulesoft.org/schema/mule/json"
 xmlns:spring="http://www.springframework.org/schema/beans" 
-version="EE-3.5.1" 
+version="EE-3.5.2" 
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
 xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
@@ -28,18 +28,20 @@ http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schem
  <batch:job name="migrateAccountsBatch">
         <batch:threading-profile poolExhaustedAction="WAIT" threadWaitTimeout="-1"/>
         <batch:input>
-            <sfdc:query config-ref="Salesforce" query="dsql:SELECT Id, Name, FirstName, LastName, Phone, AccountId, Account.Name, LastModifiedDate FROM Contact" fetchSize="${page.size}" doc:name="Contacts from Salesforce instance"/>
+
+            <sfdc:query config-ref="Salesforce" query="dsql:SELECT AccountId,Email,FirstName,Id,LastModifiedDate,LastName,Name,Phone,account.name FROM Contact WHERE LastModifiedDate &gt; ${migration.date}" fetchSize="${page.size}" doc:name="Contacts from Salesforce instance"/>
         </batch:input> 
         <batch:process-records>
             <batch:step name="getContactInDatabaseStep">
                 <enricher source="#[payload.isEmpty() ? NullPayload.getInstance() : payload[0]]" target="#[recordVars['contactInDatabase']]" doc:name="store result in record var contactInDatabase'">
                     <db:select config-ref="Database" doc:name="query Contact from Database">
                         <db:parameterized-query><![CDATA[SELECT ID, Name FROM Contact WHERE Name = #[payload['Name']]]]></db:parameterized-query>
+
                     </db:select>
                 </enricher>
             </batch:step>
 
-            <batch:step name="trasformContacts" >
+            <batch:step name="transformContacts" >
                 <data-mapper:transform doc:name="Contact To Contact" config-ref="Contact_To_Contact"/>
 
             </batch:step>
@@ -53,18 +55,23 @@ SET
 `LastName` = #[payload['LastName']],
 `LastModifiedDate` = CURRENT_TIMESTAMP,
 `Name` = #[payload['Name']],
-`Email` = #[payload['Email']]
+`Email` = #[payload['Email']],
+`Phone` = #[payload['Phone']]
 WHERE `ID` = #[payload['ID']];]]></db:parameterized-query>
 
 
+
                     </db:update>
+                    <logger message="bbb" level="INFO" doc:name="Logger"/>
+
                 </batch:commit>
             </batch:step>
             <batch:step name="insertContactsToDatabaseStep" accept-expression="!(payload is NullPayload) &amp;&amp; recordVars['contactInDatabase'] is NullPayload">
                 <batch:commit size="200" doc:name="Batch Commit">
                     <db:insert config-ref="Database" bulkMode="true" doc:name="insert contacts to Database">
-                        <db:parameterized-query><![CDATA[INSERT INTO Contact (FirstName, LastName, LastModifiedById, LastModifiedDate, Name)
-VALUES (#[payload['FirstName']], #[payload['LastName']], 'mule@localhost', CURRENT_TIMESTAMP, #[payload['Name']])]]></db:parameterized-query>
+                        <db:parameterized-query><![CDATA[INSERT INTO Contact (FirstName, LastName, LastModifiedById, LastModifiedDate, Name, Phone, Email)
+VALUES (#[payload['FirstName']], #[payload['LastName']], 'mule@localhost', CURRENT_TIMESTAMP, #[payload['Name']], #[payload['Phone']], #[payload['Email']])]]></db:parameterized-query>
+
 
 
                     </db:insert>

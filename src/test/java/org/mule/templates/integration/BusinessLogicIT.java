@@ -8,12 +8,15 @@ package org.mule.templates.integration;
 
 import static org.mule.templates.builders.SfdcObjectBuilder.aContact;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -57,16 +60,16 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 	
 	private SubflowInterceptingChainLifecycleWrapper retrieveContactFromDatabaseFlow;
 	private SubflowInterceptingChainLifecycleWrapper createContactInAFlow;
-	private SubflowInterceptingChainLifecycleWrapper createContactInBFlow;
-	private InterceptingChainLifecycleWrapper queryContactFromAFlow;
-	private InterceptingChainLifecycleWrapper queryContactFromBFlow;
 	private BatchTestHelper batchTestHelper;
-
+	private Map<String, Object> contact;
+	
 	@BeforeClass
 	public static void beforeTestClass() {
 		System.setProperty("page.size", "1000");
 		System.setProperty("db.jdbcUrl", DBCREATOR.getDatabaseUrlWithName());
 		System.setProperty("account.sync.policy", "syncAccount");
+		DateTimeFormatter df = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");		
+		System.setProperty("migration.date", df.print(new Date().getTime() - 1000 * 60 * 60 * 24));
 	}
 	
 	@Before
@@ -77,14 +80,15 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 		
 		name = ANYPOINT_TEMPLATE_NAME + "_" + UUID.getUUID();
 		// Build test contacts
-		SfdcObjectBuilder contact = aContact()
+		SfdcObjectBuilder contactBuilder = aContact()
+				.with("Phone", "00123456789")
 				.with("LastName", name)
 				.with("Email",
 						ANYPOINT_TEMPLATE_NAME + "-"
 								+ System.currentTimeMillis()
 								+ "@mail.com");
-		SfdcObjectBuilder c = contact;
-		contactsCreatedInA.add(createTestContactsInSfdcSandbox(c.build(), createContactInAFlow));
+		contact = contactBuilder.build();
+		contactsCreatedInA.add(createTestContactsInSfdcSandbox(contactBuilder.build(), createContactInAFlow));
 	}
 
 	@AfterClass
@@ -92,6 +96,7 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 		System.clearProperty("polling.frequency");
 		System.clearProperty("watermark.default.expression");
 		System.clearProperty("account.sync.policy");
+		
 	}
 
 	@After
@@ -108,26 +113,11 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 		// Flow for creating contacts in sfdc A instance
 		createContactInAFlow = getSubFlow("createContactInAFlow");
 		createContactInAFlow.initialise();
-
-		// Flow for creating contacts in sfdc B instance
-		createContactInBFlow = getSubFlow("createContactInBFlow");
-		createContactInBFlow.initialise();
-
+		
 		// Flow for deleting contacts in sfdc A instance
 		deleteContactFromAFlow = getSubFlow("deleteContactFromAFlow");
 		deleteContactFromAFlow.initialise();
 
-		// Flow for deleting contacts in sfdc B instance
-		deleteContactFromBFlow = getSubFlow("deleteContactFromBFlow");
-		deleteContactFromBFlow.initialise();
-
-		// Flow for querying contacts in sfdc A instance
-		queryContactFromAFlow = getSubFlow("queryContactFromAFlow");
-		queryContactFromAFlow.initialise();
-
-		// Flow for querying contacts in sfdc B instance
-		queryContactFromBFlow = getSubFlow("queryContactFromBFlow");
-		queryContactFromBFlow.initialise();
 	}
 
 	private static void cleanUpSandboxesByRemovingTestContacts()
@@ -137,13 +127,7 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 			idList.add(contact);
 		}
 		deleteContactFromAFlow.process(getTestEvent(idList,
-				MessageExchangePattern.REQUEST_RESPONSE));
-		idList.clear();
-		for (String contact : contactsCreatedInB) {
-			idList.add(contact);
-		}
-		deleteContactFromBFlow.process(getTestEvent(idList,
-				MessageExchangePattern.REQUEST_RESPONSE));
+				MessageExchangePattern.REQUEST_RESPONSE));		
 	}
 
 	@Test
@@ -155,7 +139,10 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 		contactInDb.put("Name", name);
 		Map<String, Object> response = (Map<String, Object>)retrieveContactFromDatabaseFlow.process(getTestEvent(contactInDb, MessageExchangePattern.REQUEST_RESPONSE)).getMessage().getPayload();
 		Assert.assertNotNull(response.get("Name"));
-		Assert.assertTrue(response.get("Name").equals(name));
+		Assert.assertTrue(response.get("Name").equals(contact.get("LastName")));
+		Assert.assertTrue(response.get("Phone").equals(contact.get("Phone")));
+		Assert.assertTrue(response.get("Email").equals(contact.get("Email")));		
+		
 	}
 	
 
