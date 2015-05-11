@@ -4,7 +4,7 @@
 	xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc"
 	xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns="http://www.mulesoft.org/schema/mule/core"
 	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.5.2"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.6.2"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
@@ -13,7 +13,7 @@ http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfd
 http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
 
 
-    <sub-flow name="retrieveContactFromDatabaseFlow" doc:name="retrieveContactFromDatabaseFlow">
+    <sub-flow name="retrieveContactFromDatabaseFlow" >
         <enricher source="#[payload.isEmpty() ? NullPayload.getInstance() : payload[0]]" target="#[payload]" doc:name="Message Enricher">
             <db:select config-ref="Database" doc:name="Database">
                 <db:parameterized-query><![CDATA[SELECT ID, Name, Phone,Email FROM Contact WHERE Name = #[payload['Name']]]]></db:parameterized-query>
@@ -23,7 +23,7 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
         </enricher>
     </sub-flow>
     	
-    <sub-flow name="createContactInAFlow" doc:name="createContactInAFlow">
+    <sub-flow name="createContactInSFDCFlow" >
 		<sfdc:create config-ref="Salesforce" type="Contact"
 			doc:name="Salesforce">
 			<sfdc:objects ref="#[payload]" />
@@ -32,13 +32,13 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 	</sub-flow>
     
 
-    <sub-flow name="deleteContactFromAFlow" doc:name="deleteContactFromAFlow">
+    <sub-flow name="deleteContactFromSFDCFlow" >
 		<sfdc:delete config-ref="Salesforce" doc:name="Salesforce">
 			<sfdc:ids ref="#[payload]" />
 		</sfdc:delete>
 	</sub-flow>
 
-    <sub-flow name="createAccountInAFlow" doc:name="createAccountInAFlow">
+    <sub-flow name="createAccountInSFDCFlow" >
         <sfdc:create config-ref="Salesforce" type="Acc" doc:name="Create account in A">
             <sfdc:objects ref="#[payload]"/>
         </sfdc:create>

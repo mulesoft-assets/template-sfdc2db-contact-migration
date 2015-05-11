@@ -47,10 +47,8 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 	private static final String ANYPOINT_TEMPLATE_NAME = "sfdc2db-contact-migration";
 	private static final int TIMEOUT_MILLIS = 60000;
 
-	private static List<String> contactsCreatedInA = new ArrayList<String>();
-	private static List<String> contactsCreatedInB = new ArrayList<String>();
-	private static SubflowInterceptingChainLifecycleWrapper deleteContactFromAFlow;
-	private static SubflowInterceptingChainLifecycleWrapper deleteContactFromBFlow;
+	private static List<String> contactsCreatedInSFDC = new ArrayList<String>();
+	private static SubflowInterceptingChainLifecycleWrapper deleteContactFromSFDCFlow;
 	
 	private static final String PATH_TO_TEST_PROPERTIES = "./src/test/resources/mule.test.properties";
 	private static final String PATH_TO_SQL_SCRIPT = "src/main/resources/contact.sql";
@@ -59,7 +57,7 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 	private String name = "";
 	
 	private SubflowInterceptingChainLifecycleWrapper retrieveContactFromDatabaseFlow;
-	private SubflowInterceptingChainLifecycleWrapper createContactInAFlow;
+	private SubflowInterceptingChainLifecycleWrapper createContactInSFDCFlow;
 	private BatchTestHelper batchTestHelper;
 	private Map<String, Object> contact;
 	
@@ -88,7 +86,7 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 								+ System.currentTimeMillis()
 								+ "@mail.com");
 		contact = contactBuilder.build();
-		contactsCreatedInA.add(createTestContactsInSfdcSandbox(contactBuilder.build(), createContactInAFlow));
+		contactsCreatedInSFDC.add(createTestContactsInSfdcSandbox(contactBuilder.build(), createContactInSFDCFlow));
 	}
 
 	@AfterClass
@@ -106,27 +104,27 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 	}
 
 	private void getAndInitializeFlows() throws InitialisationException {
-		// Flow for creating contacts in sfdc A instance
+		// Flow for creating contacts in SFDC instance
 		retrieveContactFromDatabaseFlow = getSubFlow("retrieveContactFromDatabaseFlow");
 		retrieveContactFromDatabaseFlow.initialise();
 
-		// Flow for creating contacts in sfdc A instance
-		createContactInAFlow = getSubFlow("createContactInAFlow");
-		createContactInAFlow.initialise();
+		// Flow for creating contacts in SFDC instance
+		createContactInSFDCFlow = getSubFlow("createContactInSFDCFlow");
+		createContactInSFDCFlow.initialise();
 		
-		// Flow for deleting contacts in sfdc A instance
-		deleteContactFromAFlow = getSubFlow("deleteContactFromAFlow");
-		deleteContactFromAFlow.initialise();
+		// Flow for deleting contacts in SFDC instance
+		deleteContactFromSFDCFlow = getSubFlow("deleteContactFromSFDCFlow");
+		deleteContactFromSFDCFlow.initialise();
 
 	}
 
 	private static void cleanUpSandboxesByRemovingTestContacts()
 			throws MuleException, Exception {
 		final List<String> idList = new ArrayList<String>();
-		for (String contact : contactsCreatedInA) {
+		for (String contact : contactsCreatedInSFDC) {
 			idList.add(contact);
 		}
-		deleteContactFromAFlow.process(getTestEvent(idList,
+		deleteContactFromSFDCFlow.process(getTestEvent(idList,
 				MessageExchangePattern.REQUEST_RESPONSE));		
 	}
 
