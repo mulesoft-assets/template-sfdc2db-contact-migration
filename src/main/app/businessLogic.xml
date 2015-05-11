@@ -37,6 +37,7 @@ http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schem
                     <db:select config-ref="Database" doc:name="query Contact from Database">
                         <db:parameterized-query><![CDATA[SELECT ID, Name FROM Contact WHERE Name = #[payload['Name']]]]></db:parameterized-query>
 
+
                     </db:select>
                 </enricher>
             </batch:step>
