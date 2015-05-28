@@ -45,7 +45,7 @@ To make this Anypoint Template run, there are certain preconditions that must be
 **Failling to do so could lead to unexpected behavior of the template.**
 
 This particular Anypoint Template illustrates the broadcast use case between Salesforce and a Database, thus it requires a Database instance to work.
-The Anypoint Template comes packaged with a SQL script to create the Database table that it uses. It is the user's responsibility to use that script to create the table in an available schema and change the configuration accordingly. The SQL script file can be found in [src/main/resources/contact.sql] (../master/src/main/resources/contact.sql)
+The Anypoint Template comes packaged with a SQL script to create the Database table that it uses. It is the user's responsibility to use that script to create the table in an available schema and change the configuration accordingly. The SQL script file can be found in [src/main/resources/contact.sql](../master/src/main/resources/contact.sql)
 
 ## DB Considerations <a name="dbconsiderations"/>
 
@@ -135,13 +135,6 @@ You can find a detailed description on how to do so in this [Documentation Page]
 
 
 ### Running on Studio <a name="runonstudio"/>
-Once you have imported you Anypoint Template into Anypoint Studio you need to follow these steps to run it:
-
-+ Locate the properties file `mule.dev.properties`, in src/main/resources
-+ Complete all the properties required as per the examples in the section [Properties to be configured](#propertiestobeconfigured)
-+ Once that is done, right click on you Anypoint Template project folder 
-+ Hover you mouse over `"Run as"`
-+ Click on  `"Mule Application"`
 Once you have imported your Anypoint Template into Anypoint Studio you need to follow these steps to run it:
 
 + Locate the properties file `mule.dev.properties`, in src/main/resources
@@ -153,14 +146,14 @@ Once you have imported your Anypoint Template into Anypoint Studio you need to f
 + Hover you mouse over `"Run as"`
 + Click on  `"Mule Application"`
 
+
 ### Running on Mule ESB stand alone <a name="runonmuleesbstandalone"/>
 Complete all properties in one of the property files, for example in [mule.prod.properties] (../master/src/main/resources/mule.prod.properties) and run your app with the corresponding environment variable to use it. To follow the example, this will be `mule.env=prod`. 
 
 
 ## Running on CloudHub <a name="runoncloudhub"/>
 While [creating your application on CloudHub](http://www.mulesoft.org/documentation/display/current/Hello+World+on+CloudHub) (Or you can do it later as a next step), you need to go to Deployment > Advanced to set all environment variables detailed in **Properties to be configured** as well as the **mule.env**.
-While [creating your application on CloudHub](http://www.mulesoft.org/documentation/display/current/Hello+World+on+CloudHub) (Or you can do it later as a next step), you need to go to Deployment > Advanced to set all environment variables detailed in **Properties to be configured** as well as the **mule.env**. 
-Follow other steps defined [here](#runonpremise) and once your app is all set and started, there is no need to do anything else. Every time a Contact is created or modified, it will be automatically synchronised to supplied database table.
+
 
 ### Deploying your Anypoint Template on CloudHub <a name="deployingyouranypointtemplateoncloudhub"/>
 Mule Studio provides you with really easy way to deploy your Template directly to CloudHub, for the specific steps to do so please check this [link](http://www.mulesoft.org/documentation/display/current/Deploying+Mule+Applications#DeployingMuleApplications-DeploytoCloudHub)
@@ -184,8 +177,14 @@ If it is required to connect to a different Database there should be provided th
 + sfdc.securityToken `ces56arl7apQs56XTddf34X`
 + sfdc.url `https://login.salesforce.com/services/Soap/u/32.0`
 
+#### SMTP Services configuration
++ smtp.host `smtp.gmail.com`
++ smtp.port `587`
++ smtp.user `email%40example.com`
++ smtp.password `password` 
+
 #### E-mail Details
-+ mail.from `batch.migrateaccounts.migration%40mulesoft.com`
++ mail.from `batch.contacts.migration%40mulesoft.com`
 + mail.to `cesar.garcia@mulesoft.com`
 + mail.subject `Batch Job Finished Report`
 
@@ -218,13 +217,13 @@ Functional aspect of the Template is implemented on this XML, directed by one fl
 
 1. During the *Input* stage the Template will query Salesforce for all the existing Contacts that match the filtering criteria.
 2. During the *Process* stage, each Salesforce Contact will be checked against Database by name, if it has an existing matching objects in database.
-3. The choice routing element will then decide whether to perform update on selected database columns or peform insertion.
-Finally during the *On Complete* stage the Template will log statistics data into the console.
+3. Then according to the Accept Expressions in Batch Steps it will decide whether to perform update on selected database columns or peform insertion.
+4. Finally during the *On Complete* stage the Template will log statistics data into the console.
 
 
 
 ## endpoints.xml<a name="endpointsxml"/>
-This is file is conformed by a Flow containing the HTTP endpoint that will query Salesforce for updated/created Contacts that meet the defined criteria in the query. And then executing the batch job process with the query results.
+This file is conformed by a Flow containing the HTTP endpoint that will query Salesforce for updated/created Contacts that meet the defined criteria in the query. And then executing the batch job process with the query results.
 
 
 
