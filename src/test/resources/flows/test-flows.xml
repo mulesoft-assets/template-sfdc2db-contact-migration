@@ -38,12 +38,6 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 		</sfdc:delete>
 	</sub-flow>
 
-    <sub-flow name="createAccountInSFDCFlow" >
-        <sfdc:create config-ref="Salesforce" type="Acc" doc:name="Create account in A">
-            <sfdc:objects ref="#[payload]"/>
-        </sfdc:create>
-        <logger level="INFO" message="Create Accounts in A result: #[payload]" doc:name="Logger"/>
-    </sub-flow>
 
 
 </mule>
