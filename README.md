@@ -26,16 +26,16 @@ Note that using this template is subject to the conditions of this [License Agre
 Please review the terms of the license before downloading and using this template. In short, you are allowed to use the template for free with Mule ESB Enterprise Edition, CloudHub, or as a trial in Anypoint Studio.
 
 # Use Case <a name="usecase"/>
-As a Salesforce admin I want to synchronize Contacts between Salesforce and a database.
+As a Salesforce admin I want to synchronize Contacts from Salesforce to a database.
 
-This Template should serve as a foundation for setting an online sync of Contacts from SalesForce instance to database. Everytime you hit the HTTP connector, integration will check for changes in SalesForce source instance in manner of one time integration and it will be responsible for updating the Contact on the target database table.
+This Template should serve as a foundation for setting an online sync of Contacts from Salesforce instance to database. Everytime you hit the HTTP connector, integration will check for changes in Salesforce source instance in manner of one time integration and it will be responsible for updating the Contact on the target database table.
 
 Requirements have been set not only to be used as examples, but also to establish a starting point to adapt your integration to your requirements.
 
 As implemented, this Template leverages the [Batch Module](http://www.mulesoft.org/documentation/display/current/Batch+Processing).
 The batch job is divided into *Input*, *Process* and *On Complete* stages.
 The integration is triggered by a HTTP connector defined in the flow that is going to trigger the application, querying Salesforce updates/creations matching a filtering criteria and executing the batch job.
-During the *Process* stage, each Salesforce Contact will be filtered depending if it has an existing matching Contact in the database
+During the *Process* stage, each Salesforce Contact will be filtered depending if it has an existing matching Contact in the database.
 The last step of the *Process* stage will group the Contacts and insert/update them in a database.
 Finally during the *On Complete* stage the Template will log statistics into the console.
 
@@ -44,7 +44,7 @@ Finally during the *On Complete* stage the Template will log statistics into the
 To make this Anypoint Template run, there are certain preconditions that must be considered. All of them deal with the preparations in both source (Salesforce) and destination (Database) systems, that must be made in order for all to run smoothly. 
 **Failling to do so could lead to unexpected behavior of the template.**
 
-This particular Anypoint Template illustrates the broadcast use case between Salesforce and a Database, thus it requires a Database instance to work.
+This particular Anypoint Template illustrates the migration use case between Salesforce and a Database, thus it requires a Database instance to work.
 The Anypoint Template comes packaged with a SQL script to create the Database table that it uses. It is the user's responsibility to use that script to create the table in an available schema and change the configuration accordingly. The SQL script file can be found in [src/main/resources/contact.sql](../master/src/main/resources/contact.sql)
 
 ## DB Considerations <a name="dbconsiderations"/>
@@ -149,11 +149,11 @@ Once you have imported your Anypoint Template into Anypoint Studio you need to f
 
 ### Running on Mule ESB stand alone <a name="runonmuleesbstandalone"/>
 Complete all properties in one of the property files, for example in [mule.prod.properties] (../master/src/main/resources/mule.prod.properties) and run your app with the corresponding environment variable to use it. To follow the example, this will be `mule.env=prod`. 
-
+After this, to trigger the use case you just need to hit the local HTTP connector with the port you configured in your file. If this is, for instance, `9090` then you should hit: `http://localhost:9090/migratecontacts` and this will output a summary report and send it in the e-mail.
 
 ## Running on CloudHub <a name="runoncloudhub"/>
 While [creating your application on CloudHub](http://www.mulesoft.org/documentation/display/current/Hello+World+on+CloudHub) (Or you can do it later as a next step), you need to go to Deployment > Advanced to set all environment variables detailed in **Properties to be configured** as well as the **mule.env**.
-
+Follow other steps defined [here](#runonpremise) and once your app is all set and started, there is no need to do anything else. Once your app is all set up and started, supposing you choose contactsmigration as domain name to trigger the use case, you just need to hit http://contactsmigration.cloudhub.io/migratecontacts and report will be sent to the e-mail configured.
 
 ### Deploying your Anypoint Template on CloudHub <a name="deployingyouranypointtemplateoncloudhub"/>
 Mule Studio provides you with really easy way to deploy your Template directly to CloudHub, for the specific steps to do so please check this [link](http://www.mulesoft.org/documentation/display/current/Deploying+Mule+Applications#DeployingMuleApplications-DeploytoCloudHub)
@@ -163,13 +163,13 @@ Mule Studio provides you with really easy way to deploy your Template directly t
 In order to use this Mule Anypoint Template you need to configure properties (Credentials, configurations, etc.) either in properties file or in CloudHub as Environment Variables. Detail list with examples:
 ### Application configuration
 + http.port `9090`
-+ page.size `1000`
-+ migration.date `2014-12-10T14:17:21.000Z`
++ page.size `200`
++ migration.date `2015-09-08T10:17:21.000Z`
 
 #### Database Connector configuration
 + database.url `jdbc:mysql://192.168.224.130:3306/database?user=mule&password=mule`
 
-If it is required to connect to a different Database there should be provided the jar for the library and changed the value of that field in the connector.
+**Note:** If it is required to connect to a different Database there should be provided the jar for the library and changed the value of that field in the connector.
 
 #### Salesforce Connector configuration
 + sfdc.username `joan.baez@orgb`
@@ -223,7 +223,15 @@ Functional aspect of the Template is implemented on this XML, directed by one fl
 
 
 ## endpoints.xml<a name="endpointsxml"/>
-This file is conformed by a Flow containing the HTTP endpoint that will query Salesforce for updated/created Contacts that meet the defined criteria in the query. And then executing the batch job process with the query results.
+This is the file where you will found the inbound and outbound sides of your integration app.
+This Template has only an [HTTP Listener Connector](http://www.mulesoft.org/documentation/display/current/HTTP+Listener+Connector) as the way to trigger the use case.
+### Inbound Flow
+**HTTP Listener Connector** - Start Report Generation
+
++ `${http.port}` is set as a property to be defined either on a property file or in CloudHub environment variables.
++ The path configured by default is `migratecontacts` and you are free to change for the one you prefer.
++ The host name for all endpoints in your CloudHub configuration should be defined as `localhost`. CloudHub will then route requests from your application domain URL to the endpoint.
++ The endpoint is a *request-response* since as a result of calling it the response will be the total of Contacts synced and filtered by the criteria specified.
 
 
 

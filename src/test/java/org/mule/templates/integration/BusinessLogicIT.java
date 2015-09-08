@@ -8,7 +8,6 @@ package org.mule.templates.integration;
 
 import static org.mule.templates.builders.SfdcObjectBuilder.aContact;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -63,9 +62,7 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 	
 	@BeforeClass
 	public static void beforeTestClass() {
-		System.setProperty("page.size", "1000");
 		System.setProperty("db.jdbcUrl", DBCREATOR.getDatabaseUrlWithName());
-		System.setProperty("account.sync.policy", "syncAccount");
 		DateTimeFormatter df = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");		
 		System.setProperty("migration.date", df.print(new Date().getTime() - 1000 * 60 * 60 * 24));
 	}
@@ -91,9 +88,8 @@ public class BusinessLogicIT extends AbstractTemplateTestCase {
 
 	@AfterClass
 	public static void shutDown() {
-		System.clearProperty("polling.frequency");
-		System.clearProperty("watermark.default.expression");
-		System.clearProperty("account.sync.policy");
+		System.clearProperty("db.jdbcUrl");
+		System.clearProperty("migration.date");
 		
 	}
 
