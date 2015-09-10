@@ -2,19 +2,18 @@
 
 <mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
 	xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc"
-	xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
 	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.6.2"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.7.1"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd
-http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd">
 
 
     <sub-flow name="retrieveContactFromDatabaseFlow" >
-        <enricher source="#[payload.isEmpty() ? NullPayload.getInstance() : payload[0]]" target="#[payload]" doc:name="Message Enricher">
+        <enricher source="#[payload.isEmpty() ? null : payload[0]]" target="#[payload]" doc:name="Message Enricher">
             <db:select config-ref="Database" doc:name="Database">
                 <db:parameterized-query><![CDATA[SELECT ID, Name, Phone,Email FROM Contact WHERE Name = #[payload['Name']]]]></db:parameterized-query>
 

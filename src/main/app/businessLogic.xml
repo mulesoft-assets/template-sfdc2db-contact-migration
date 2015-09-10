@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:data-mapper="http://www.mulesoft.org/schema/mule/ee/data-mapper" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:core="http://www.mulesoft.org/schema/mule/core" 
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+xmlns:db="http://www.mulesoft.org/schema/mule/db"
+xmlns:core="http://www.mulesoft.org/schema/mule/core" 
 xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" 
 xmlns="http://www.mulesoft.org/schema/mule/core" 
 xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" 
@@ -9,7 +11,7 @@ xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc"
 xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp"
 xmlns:json="http://www.mulesoft.org/schema/mule/json"
 xmlns:spring="http://www.springframework.org/schema/beans" 
-version="EE-3.6.2" 
+version="EE-3.7.1" 
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
 xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
@@ -19,9 +21,7 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd
 http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
-http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schema/mule/ee/data-mapper/current/mule-data-mapper.xsd">
-    <data-mapper:config name="Contact_To_Contact" transformationGraphPath="contact_to_contact.grf" doc:name="Contact_To_Contact"/>
-
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
 
  <batch:job name="migrateAccountsBatch">
         <batch:threading-profile poolExhaustedAction="WAIT" threadWaitTimeout="-1"/>
@@ -31,22 +31,33 @@ http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schem
         </batch:input> 
         <batch:process-records>
             <batch:step name="getContactInDatabaseStep">
-                <enricher source="#[payload.isEmpty() ? NullPayload.getInstance() : payload[0]]" target="#[recordVars['contactInDatabase']]" doc:name="store result in record var contactInDatabase'">
+                <enricher source="#[payload.isEmpty() ? null : payload[0].ID]" target="#[payload.Id]" doc:name="store result Id in payload">
                     <db:select config-ref="Database" doc:name="query Contact from Database">
-                        <db:parameterized-query><![CDATA[SELECT ID, Name FROM Contact WHERE Name = #[payload['Name']]]]></db:parameterized-query>
+                        <db:parameterized-query><![CDATA[SELECT ID FROM Contact WHERE Name = #[payload['Name']]]]></db:parameterized-query>
 
 
                     </db:select>
                 </enricher>
             </batch:step>
-
-            <batch:step name="transformContacts" >
-                <data-mapper:transform doc:name="Contact To Contact" config-ref="Contact_To_Contact"/>
-
-            </batch:step>
-            <batch:step name="updateContactsInDatabaseStep" accept-expression="!(payload is NullPayload) &amp;&amp; !(recordVars['contactInDatabase'] is NullPayload)">
-                <expression-component doc:name="prepare contact for update"><![CDATA[payload['ID'] = recordVars['contactInDatabase'] is NullPayload ? null : recordVars['contactInDatabase']['ID']]]></expression-component>
-                <batch:commit size="200" doc:name="Batch Commit">
+            <batch:step name="updateContactsInDatabaseStep" accept-expression="payload != null &amp;&amp; payload.Id != null">
+                <batch:commit size="${page.size}" doc:name="Batch Commit">
+                    <dw:transform-message doc:name="SFDC Contact to DB Contact">
+                        <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload map
+{
+	ID: $.Id,
+	Name: $.Name,
+	FirstName: $.FirstName,
+	LastName: $.LastName,
+	Phone: $.Phone,
+	LastModifiedById: $.LastModifiedById,
+	LastModifiedDate: $.LastModifiedDate,
+	Email: $.Email,
+	AccountName: $.Account.Name
+}]]></dw:set-payload>
+                    </dw:transform-message>
                     <db:update config-ref="Database" bulkMode="true" doc:name="update contacts in Database">
                         <db:parameterized-query><![CDATA[UPDATE Contact
 SET
@@ -55,7 +66,8 @@ SET
 `LastModifiedDate` = CURRENT_TIMESTAMP,
 `Name` = #[payload['Name']],
 `Email` = #[payload['Email']],
-`Phone` = #[payload['Phone']]
+`Phone` = #[payload['Phone']],
+`AccountName` = #[payload['AccountName']]
 WHERE `ID` = #[payload['ID']];]]></db:parameterized-query>
 
 
@@ -65,11 +77,27 @@ WHERE `ID` = #[payload['ID']];]]></db:parameterized-query>
 
                 </batch:commit>
             </batch:step>
-            <batch:step name="insertContactsToDatabaseStep" accept-expression="!(payload is NullPayload) &amp;&amp; recordVars['contactInDatabase'] is NullPayload">
-                <batch:commit size="200" doc:name="Batch Commit">
+            <batch:step name="insertContactsToDatabaseStep" accept-expression="payload !=null &amp;&amp; payload.Id == null">
+                <batch:commit size="${page.size}" doc:name="Batch Commit">
+                    <dw:transform-message doc:name="SFDC Contact to DB Contact">
+                        <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload map
+{
+	Name: $.Name,
+	FirstName: $.FirstName,
+	LastName: $.LastName,
+	Phone: $.Phone,
+	LastModifiedById: $.LastModifiedById,
+	LastModifiedDate: $.LastModifiedDate,
+	Email: $.Email,
+	AccountName: $.Account.Name
+}]]></dw:set-payload>
+                    </dw:transform-message>
                     <db:insert config-ref="Database" bulkMode="true" doc:name="insert contacts to Database">
-                        <db:parameterized-query><![CDATA[INSERT INTO Contact (FirstName, LastName, LastModifiedById, LastModifiedDate, Name, Phone, Email)
-VALUES (#[payload['FirstName']], #[payload['LastName']], 'mule@localhost', CURRENT_TIMESTAMP, #[payload['Name']], #[payload['Phone']], #[payload['Email']])]]></db:parameterized-query>
+                        <db:parameterized-query><![CDATA[INSERT INTO Contact (FirstName, LastName, LastModifiedById, LastModifiedDate, Name, Phone, Email, AccountName)
+VALUES (#[payload['FirstName']], #[payload['LastName']], 'mule@localhost', CURRENT_TIMESTAMP, #[payload['Name']], #[payload['Phone']], #[payload['Email']], #[payload['AccountName']])]]></db:parameterized-query>
 
 
 
