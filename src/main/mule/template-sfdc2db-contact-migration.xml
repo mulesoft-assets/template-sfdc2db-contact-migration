@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:catalyst-retail_-customer-system-a-p-i="http://www.mulesoft.org/schema/mule/catalyst-retail_-customer-system-a-p-i"
+	xmlns:catalyst-retail_-shopping-cart-process-a-p-i="http://www.mulesoft.org/schema/mule/catalyst-retail_-shopping-cart-process-a-p-i" xmlns:batch-notif="http://www.mulesoft.org/schema/mule/batch-notif"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd 
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/batch-notif http://www.mulesoft.org/schema/mule/batch-notif/current/mule-batch-notif.xsd
+http://www.mulesoft.org/schema/mule/catalyst-retail_-shopping-cart-process-a-p-i http://www.mulesoft.org/schema/mule/catalyst-retail_-shopping-cart-process-a-p-i/current/mule-catalyst-retail_-shopping-cart-process-a-p-i.xsd
+http://www.mulesoft.org/schema/mule/catalyst-retail_-customer-system-a-p-i http://www.mulesoft.org/schema/mule/catalyst-retail_-customer-system-a-p-i/current/mule-catalyst-retail_-customer-system-a-p-i.xsd">
+
+	<http:listener-config name="HTTP_Listener_config"
+		doc:name="HTTP Listener config" doc:id="c88ddd0b-4a5e-4a08-97ad-07840a2ea522">
+		<http:listener-connection host="0.0.0.0"
+			port="${http.port}" />
+	</http:listener-config>
+
+	<db:config name="Database_Config" doc:name="Database Config"
+		doc:id="6e89dec2-95e1-4ee2-a6c1-d722c45f3d20">
+		<db:my-sql-connection
+			host="${db.host}"
+			port="${db.port}" user="${db.user}" password="${db.password}"
+			database="${db.name}" />
+	</db:config>
+
+	<email:smtp-config name="Gmail_SMTP" doc:name="Email SMTP"
+		doc:id="8ba14ccd-a5b8-43a8-8281-cd433c852f2b">
+		<email:smtps-connection host="${smtp.host}"
+			port="${smtp.port}" user="${smtp.user}" password="${smtp.password}"
+			tlsContext="TLS_Context" />
+	</email:smtp-config>
+	<tls:context name="TLS_Context" doc:name="TLS Context"
+		doc:id="233e532c-8296-4ddd-ac67-e2b7984b3609">
+		<tls:trust-store insecure="true" />
+	</tls:context>
+	<salesforce:sfdc-config name="Salesforce_Sfdc_config"
+		doc:name="Salesforce Sfdc config" doc:id="0fd2a257-c65d-444d-bdc5-d66b5479a967">
+		<salesforce:basic-connection username="${sfdc.username}"
+			password="${sfdc.password}" securityToken="${sfdc.securityToken}" />
+	</salesforce:sfdc-config>
+
+	<configuration-properties file="mule-artifact.properties" doc:name="Configuration properties" doc:id="46877740-aac5-4812-8728-4718689aa9ec" />
+	<configuration-properties file="common.properties" doc:name="Configuration properties" doc:id="dffa4da7-cc5c-4ecb-922e-1115b4387354" />
+	<configuration-properties file="mule.${mule.env}.properties" doc:name="Configuration properties" doc:id="674beef8-9485-40a7-99b9-0685c9b7e863" />
+<flow name="sfdc2db-account-migrationFlow" doc:id="5aa7011d-8abd-453d-9459-c7322838f14a">
+		<http:listener config-ref="HTTP_Listener_config" path="/migrate"
+			doc:name="/migrate (Migrate contacts listener)" doc:id="6dacdf72-e550-4229-a81a-5ce802a114c1" />
+		<salesforce:query config-ref="Salesforce_Sfdc_config"
+			doc:name="Select contacts from SFDC" doc:id="fee8c43d-e435-46bf-b09c-0b0c02ec28f9">
+			<salesforce:salesforce-query>SELECT AccountId,Email,FirstName,Id,LastModifiedDate,LastName,Name,Phone,account.name FROM Contact WHERE LastModifiedDate &gt; ${migration.date}</salesforce:salesforce-query>
+		</salesforce:query>
+		<batch:job jobName="sfdc2db-account-migrationBatch_Job"
+			doc:id="af55c5cf-807b-4582-9868-66f144b0a8e9">
+			<batch:process-records>
+				<batch:step name="selectContactFromDB" doc:id="b2f6d0eb-1dd2-4281-bd99-14cd169d9976">
+					<db:select config-ref="Database_Config"
+						doc:name="Select account from database by name" doc:id="ea180723-75eb-4fcd-84e0-d9877b28fa48"
+						target="IdInDB" targetValue="#[payload[0].Id]">
+						<db:sql>SELECT Id FROM Contact WHERE Name = :name</db:sql>
+						<db:input-parameters><![CDATA[#[{'name' : payload.Name}]]]></db:input-parameters>
+					</db:select>
+					<ee:transform doc:name="Push Id of account from database to payload" doc:id="ca116e7d-c414-4e26-b751-da121dd118ca" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload ++ {IdInDB: vars.IdInDB}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</batch:step>
+				<batch:step name="updateContactsInDatabaseStep" doc:id="e1702a0d-b993-4a37-8116-8473a7c564e2"
+					acceptExpression="payload.IdInDB != null">
+					<batch:aggregator doc:name="Batch Aggregator"
+						doc:id="ca478779-cd13-4594-b0d1-30aee5a5cba2" size="5">
+						<ee:transform doc:name="Map fields from sfdc to fields of database"
+							doc:id="bc5c1683-cb2b-40be-9f10-47100e9ee673">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+type sqldate = String { format: "YYYY-MM-dd HH:mm:ss" }
+---
+payload map {
+	ID: $.IdInDB,
+	Name: $.Name,
+	FirstName: $.FirstName,
+	LastName: $.LastName,
+	Phone: $.Phone,
+	LastModifiedById: $.LastModifiedById,
+	LastModifiedDate: ((($.LastModifiedDate as DateTime) >> |+00:00|) as sqldate),
+	Email: $.Email,
+	AccountName: $.Account.Name
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<db:bulk-update config-ref="Database_Config"
+							doc:name="Bulk update of contacts from database" doc:id="b4701ae7-61dd-41ab-b626-982f2417a351">
+							<db:sql>UPDATE Contact SET
+								FirstName = :FirstName,
+								LastName = :LastName,
+								LastModifiedDate = :LastModifiedDate,
+								Name = :Name,
+								Email = :Email,
+								Phone = :Phone,
+								AccountName = :AccountName
+								WHERE Id = :ID
+							</db:sql>
+						</db:bulk-update>
+					</batch:aggregator>
+				</batch:step>
+				<batch:step name="insertContactsToDatabaseStep" doc:id="0635642e-6535-4e67-a6e7-68e2b4a4b99f"
+					acceptExpression="payload.IdInDB == null">
+					<batch:aggregator doc:name="Batch Aggregator"
+						doc:id="86dd7c8e-c76c-4167-8c04-c633833b764a" size="5">
+						<ee:transform doc:name="Map fields from sfdc to fields of database"
+							doc:id="bc5c1683-cb2b-40be-9f10-47100e9ee673">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+type sqldate = String { format: "YYYY-MM-dd HH:mm:ss" }
+---
+payload map {
+	Name: $.Name,
+	FirstName: $.FirstName,
+	LastName: $.LastName,
+	Phone: $.Phone,
+	LastModifiedById: $.LastModifiedById,
+	LastModifiedDate: ((($.LastModifiedDate as DateTime) >> |+00:00|) as sqldate),
+	Email: $.Email,
+	AccountName: $.Account.Name
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<db:bulk-insert config-ref="Database_Config"
+							doc:name="Bulk insert of accounts to database" doc:id="b87bbcfa-92c5-43ac-8351-ac3ee341450c">
+							<db:sql>INSERT INTO Contact (
+								FirstName,
+								LastName,
+								LastModifiedById,
+								LastModifiedDate,
+								Name,
+								Phone,
+								Email,
+								AccountName
+								) VALUES (
+								:FirstName,
+								:LastName,
+								:LastModifiedById,
+								:LastModifiedDate,
+								:Name,
+								:Phone,
+								:Email,
+								:AccountName
+								)
+							</db:sql>
+						</db:bulk-insert>
+					</batch:aggregator>
+				</batch:step>
+			</batch:process-records>
+			<batch:on-complete>
+				<scatter-gather doc:name="Scatter-Gather" doc:id="ef2964ef-0b85-4c6c-a5ee-b834df639e7b">
+			<route>
+				<logger level="INFO" doc:name="Migration process has finished!" doc:id="b7575d38-7dbd-4602-9186-1bbb25234896" message="Migration process has finished!" />
+			</route>
+					<route>
+ 						<ee:transform doc:name="Prepare migration result email"
+ 							doc:id="c84b4bc4-5a65-41c1-9d0c-f1ebd3d8db7a">
+ 							<ee:message>
+ 								<ee:set-payload><![CDATA[%dw 2.0
+ output text/plain
+ ---
+ "Migration Report: \n"
+  
+ ++ "\n Time [milliseconds]: " 		++ payload.elapsedTimeInMillis
+ ++ "\n Total Records: "				++ payload.totalRecords
+ ++ "\n Successful Records: "		++ payload.successfulRecords
+ ++ "\n Failed Records: "			++ payload.failedRecords
+ ++ "\n Loaded Records: "			++ payload.loadedRecords
+ ++ "\n Processed Records: " 		++ payload.processedRecords]]></ee:set-payload>
+ 							</ee:message>
+ 						</ee:transform>
+ 						<email:send config-ref="Gmail_SMTP" doc:name="Send migration result email"
+ 							doc:id="5896eaa9-dd10-47a2-a6fc-6319b11dbd06" fromAddress="${mail.from}"
+ 							subject="Accounts has been migrated">
+ 							<email:to-addresses>
+ 								<email:to-address value="${mail.to}" />
+ 							</email:to-addresses>
+ 						</email:send>
+ 					</route>
+		</scatter-gather>
+			</batch:on-complete>
+		</batch:job>
+		<logger level="INFO" doc:name="Log - Migration process has started!" doc:id="673c18b0-db38-44f6-95ef-69edd1e75ed6" message="Migration process has started!"/>
+		<ee:transform doc:name="Build response" doc:id="2abddd58-c707-435a-a004-ec5ba9107429" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "Migration process has started!"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
