@@ -44,7 +44,7 @@ Finally during the *On Complete* stage the Template will log statistics into the
 # Considerations <a name="considerations"/>
 
 To make this Anypoint Template run, there are certain preconditions that must be considered. All of them deal with the preparations in both source (Salesforce) and destination (Database) systems, that must be made in order for all to run smoothly.
-**Failling to do so could lead to unexpected behavior of the template.**
+**Failing to do so could lead to unexpected behavior of the template.**
 
 This particular Anypoint Template illustrates the migration use case between Salesforce and a Database, thus it requires a Database instance to work.
 The Anypoint Template comes packaged with a SQL script to create the Database table that it uses.
@@ -228,7 +228,6 @@ In the visual editor they can be found on the *Global Element* tab.
 ## businessLogic.xml<a name="businesslogicxml"/>
 Functional aspect of the Template is implemented on this XML, directed by one flow responsible of excecuting the logic.
 For the purpose of this particular Template the *mainFlow* just executes a [Batch Job](http://www.mulesoft.org/documentation/display/current/Batch+Processing), which handles all the logic of it.
-This flow has Exception Handling that basically consists on invoking the *errorHandlingFlow* defined in *errorHandling.xml* file.
 
 
 
