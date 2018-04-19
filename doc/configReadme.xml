@@ -5,7 +5,7 @@
 	</placeholders>
 	<sections>
 		<section id="use_case">
-As a Salesforce admin I want to synchronize Contacts from Salesforce to a database.
+As a Salesforce admin I want to migrate Contacts from Salesforce to a database.
 
 This Template should serve as a foundation for setting an online sync of Contacts from Salesforce instance to database. Everytime you hit the HTTP connector, integration will check for changes in Salesforce source instance in manner of one time integration and it will be responsible for updating the Contact on the target database table.
 
@@ -105,7 +105,7 @@ $H$H# Inbound Flow
 		<section id="default_business_logic_xml">
 		<![CDATA[
 Functional aspect of the Template is implemented on this XML, directed by one flow responsible of excecuting the logic.
-For the purpose of this particular Template the *mainFlow* just executes a [Batch Job](http://www.mulesoft.org/documentation/display/current/Batch+Processing), which handles all the logic of it.
+For the purpose of this particular Template the *mainFlow* uses a [Batch Job](http://www.mulesoft.org/documentation/display/current/Batch+Processing), which handles all the logic of it.
 ]]>
 		</section>
 	</sections>
