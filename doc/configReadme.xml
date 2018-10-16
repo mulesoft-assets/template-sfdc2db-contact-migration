@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version='1.0' encoding='utf-8'?>
 <configuration>
 	<placeholders>
 		<placeholder id="template_name">Salesforce to Database Contact Migration</placeholder>
@@ -11,12 +11,12 @@ This template serves as a foundation for setting an online sync of Contacts from
 
 Requirements have been set not only to be used as examples, but also to establish a starting point to adapt your integration to your requirements.
 
-This template leverages the Mule batch module. The batch job is divided into *Process* and *On Complete* stages. The integration is triggered by a HTTP connector defined in the flow that is going to trigger the application, querying Salesforce updates/creations matching a filtering criteria and executing the batch job. During the *Process* stage, each Salesforce Contact is filtered depending if it has an existing matching Contact in the database. The last step of the *Process* stage groups the Contacts and insert/update them in a database.
+This template leverages the Mule batch module. The batch job is divided into *Process* and *On Complete* stages. The integration is triggered by a HTTP connector defined in the flow that is going to trigger the application, querying Salesforce updates/creations matching a filtering criteria and executing the batch job. During the *Process* stage, each Salesforce Contact is filtered depending if it has an existing matching Contact in the database. The last step of the *Process* stage groups the Contacts and inserts or updates them in a database.
 
 Finally during the *On Complete* stage the template logs statistics into the console.
 		</section>
 		<section id="considerations">
-<![CDATA[
+
 To make this template run, there are certain preconditions that must be considered. All of them deal with the preparations in both source (Salesforce) and destination (Database) systems, that must be made for the template to run smoothly. 
 **Failing to do so can lead to unexpected behavior of the template.**
 
@@ -29,20 +29,20 @@ This template is customized for MySQL. To use it with different SQL implementati
 * Replace MySQL driver library dependency to desired one in the pom.xml file.
 * Update the Database Config to a suitable connection instead of db:my-sql-connection in global elements in config.xml in /src/main/mule/config.xml.
 * Update database properties in the `mule.*.properties` file.
-]]>
+
 		</section>
 		<section id="running_on_standalone">
-<![CDATA[
+
 After this, to trigger the use case you just need to browse to the local HTTP connector with the port you configured in your file. If this is, for instance, `9090` then you should browse to `http://localhost:9090/migratecontacts` and this outputs a summary report and send it in the e-mail.
-]]>
+
 		</section>
 		<section id="running_on_cloudhub">
-<![CDATA[ 
+ 
 Follow other steps defined [here](#runonpremise) and once your app is all set and started, there is no need to do anything else. Once your app is all set up and started, supposing you choose contactsmigration as domain name to trigger the use case, you just need to browse to http://contactsmigration.cloudhub.io/migratecontacts and the report is sent to the email configured.
-]]>
+
 		</section>
 		<section id="application_configuration">
-		<![CDATA[
+		
 **HTTP Connector Configuration**
 + http.port `9090`
 
@@ -74,16 +74,16 @@ Follow other steps defined [here](#runonpremise) and once your app is all set an
 + mail.from `batch.contacts.migration%40mulesoft.com`
 + mail.to `your.email@gmail.com`
 + mail.subject `Batch Job Finished Report`
-]]>
+
 		</section>
 		<section id="api_calls">
-		<![CDATA[
+		
 Salesforce imposes limits on the number of API calls that can be made. Therefore calculating this amount may be an important factor to consider. 
 In this template only one Salesforce query is made so this is not something to worry about.
-]]>
+
 		</section>
 		<section id="default_endpoints_xml">
-		<![CDATA[
+		
 This file provides the inbound and outbound sides of your integration app.
 This template has only an HTTP Listener as the way to trigger the use case.
 $H$H# Inbound Flow
@@ -93,13 +93,13 @@ $H$H# Inbound Flow
 + The path configured by default is `migratecontacts` and you are free to change for the one you prefer.
 + The host name for all endpoints in your CloudHub configuration should be defined as `localhost`. CloudHub routes requests from your application domain URL to the endpoint.
 + The endpoint is a *request-response* since as a result of calling it the response is the total of Contacts synced and filtered by the criteria specified.
-]]>
+
 		</section>
 		<section id="default_business_logic_xml">
-		<![CDATA[
+		
 Functional aspect of the template is implemented on this XML, directed by one flow responsible of excecuting the logic.
 For the purpose of this particular Template the *mainFlow* uses a batch job, which handles all the logic of it.
-]]>
+
 		</section>
 	</sections>
 </configuration>
