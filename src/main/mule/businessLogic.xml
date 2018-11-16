@@ -1,14 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
-	xmlns:email="http://www.mulesoft.org/schema/mule/email" 
-	xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
-	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" 
-	xmlns:db="http://www.mulesoft.org/schema/mule/db"
-	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
-	xmlns="http://www.mulesoft.org/schema/mule/core" 
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd 
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:email="http://www.mulesoft.org/schema/mule/email"
+    xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+    xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd 
 http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd 
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
@@ -16,38 +12,36 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
 http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
 http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd">
 
-<flow name="businessLogicFlow" doc:id="5aa7011d-8abd-453d-9459-c7322838f14a">
-		<salesforce:query config-ref="Salesforce_Sfdc_config"
-			doc:name="Contacts from Salesforce instance" doc:id="fee8c43d-e435-46bf-b09c-0b0c02ec28f9">
-			<salesforce:salesforce-query>SELECT Email,FirstName,Id,LastModifiedDate, LastName,Name,Phone,Account.Name FROM Contact WHERE LastModifiedDate &gt; ${migration.date}</salesforce:salesforce-query>
-		</salesforce:query>
-		<batch:job jobName="migrateContactsBatch"
-			doc:id="af55c5cf-807b-4582-9868-66f144b0a8e9" blockSize="${page.size}">
-			<batch:process-records>
-				<batch:step name="getContactInDatabaseStep" doc:id="b2f6d0eb-1dd2-4281-bd99-14cd169d9976">
-					<db:select config-ref="Database_Config"
-						doc:name="query Contact from Database" doc:id="ea180723-75eb-4fcd-84e0-d9877b28fa48"
-						target="IdInDB" targetValue="#[payload[0].Id]">
-						<db:sql>SELECT Id FROM Contact WHERE Name = :name</db:sql>
-						<db:input-parameters><![CDATA[#[{'name' : payload.Name}]]]></db:input-parameters>
-					</db:select>
-					<ee:transform doc:name="Push Contact Id from DB to payload" doc:id="ca116e7d-c414-4e26-b751-da121dd118ca" >
-						<ee:message >
-							<ee:set-payload ><![CDATA[%dw 2.0
+    <flow name="businessLogicFlow" doc:id="5aa7011d-8abd-453d-9459-c7322838f14a">
+        <salesforce:query config-ref="Salesforce_Sfdc_config" doc:name="Contacts from Salesforce instance"
+            doc:id="fee8c43d-e435-46bf-b09c-0b0c02ec28f9">
+            <salesforce:salesforce-query>SELECT Email,FirstName,Id,LastModifiedDate, LastName,Name,Phone,Account.Name FROM Contact
+                WHERE LastModifiedDate &gt; ${migration.date}</salesforce:salesforce-query>
+        </salesforce:query>
+        <batch:job jobName="migrateContactsBatch" doc:id="af55c5cf-807b-4582-9868-66f144b0a8e9" blockSize="${page.size}">
+            <batch:process-records>
+                <batch:step name="getContactInDatabaseStep" doc:id="b2f6d0eb-1dd2-4281-bd99-14cd169d9976">
+                    <db:select config-ref="Database_Config" doc:name="query Contact from Database" doc:id="ea180723-75eb-4fcd-84e0-d9877b28fa48"
+                        target="IdInDB" targetValue="#[payload[0].Id]">
+                        <db:sql>SELECT Id FROM Contact WHERE Name = :name</db:sql>
+                        <db:input-parameters><![CDATA[#[{'name' : payload.Name}]]]></db:input-parameters>
+                    </db:select>
+                    <ee:transform doc:name="Push Contact Id from DB to payload" doc:id="ca116e7d-c414-4e26-b751-da121dd118ca">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
 output application/java
 ---
 payload ++ {IdInDB: vars.IdInDB}]]></ee:set-payload>
-						</ee:message>
-					</ee:transform>
-				</batch:step>
-				<batch:step name="updateContactsInDatabaseStep" doc:id="e1702a0d-b993-4a37-8116-8473a7c564e2"
-					acceptExpression="payload.IdInDB != null">
-					<batch:aggregator doc:name="Batch Aggregator"
-						doc:id="ca478779-cd13-4594-b0d1-30aee5a5cba2" size="${page.size}">
-						<ee:transform doc:name="SFDC Contact to DB Contact"
-							doc:id="bc5c1683-cb2b-40be-9f10-47100e9ee673">
-							<ee:message>
-								<ee:set-payload><![CDATA[%dw 2.0
+                        </ee:message>
+                    </ee:transform>
+                </batch:step>
+                <batch:step name="updateContactsInDatabaseStep" doc:id="e1702a0d-b993-4a37-8116-8473a7c564e2"
+                    acceptExpression="payload.IdInDB != null">
+                    <batch:aggregator doc:name="Batch Aggregator" doc:id="ca478779-cd13-4594-b0d1-30aee5a5cba2"
+                        size="${page.size}">
+                        <ee:transform doc:name="SFDC Contact to DB Contact" doc:id="bc5c1683-cb2b-40be-9f10-47100e9ee673">
+                            <ee:message>
+                                <ee:set-payload><![CDATA[%dw 2.0
 output application/java
 ---
 payload map {
@@ -59,32 +53,31 @@ payload map {
 	Email: $.Email,
 	AccountName: $.Account.Name
 }]]></ee:set-payload>
-							</ee:message>
-						</ee:transform>
-						<db:bulk-update config-ref="Database_Config"
-							doc:name="Bulk update contacts in Database" doc:id="b4701ae7-61dd-41ab-b626-982f2417a351">
-							<db:sql>UPDATE Contact SET
-								FirstName = :FirstName,
-								LastName = :LastName,
-								LastModifiedDate = CURRENT_TIMESTAMP(),
-								LastModifiedById = CURRENT_USER(),
-								Name = :Name,
-								Email = :Email,
-								Phone = :Phone,
-								AccountName = :AccountName
-								WHERE Id = :ID
-							</db:sql>
-						</db:bulk-update>
-					</batch:aggregator>
-				</batch:step>
-				<batch:step name="insertContactsToDatabaseStep" doc:id="0635642e-6535-4e67-a6e7-68e2b4a4b99f"
-					acceptExpression="payload.IdInDB == null">
-					<batch:aggregator doc:name="Batch Aggregator"
-						doc:id="86dd7c8e-c76c-4167-8c04-c633833b764a" size="${page.size}">
-						<ee:transform doc:name="SFDC Contact to DB Contact"
-							doc:id="bc5c1683-cb2b-40be-9f10-47100e9ee673">
-							<ee:message>
-								<ee:set-payload><![CDATA[%dw 2.0
+                            </ee:message>
+                        </ee:transform>
+                        <db:bulk-update config-ref="Database_Config" doc:name="Bulk update contacts in Database"
+                            doc:id="b4701ae7-61dd-41ab-b626-982f2417a351">
+                            <db:sql>UPDATE Contact SET
+                                FirstName = :FirstName,
+                                LastName = :LastName,
+                                LastModifiedDate = CURRENT_TIMESTAMP(),
+                                LastModifiedById = CURRENT_USER(),
+                                Name = :Name,
+                                Email = :Email,
+                                Phone = :Phone,
+                                AccountName = :AccountName
+                                WHERE Id = :ID
+                            </db:sql>
+                        </db:bulk-update>
+                    </batch:aggregator>
+                </batch:step>
+                <batch:step name="insertContactsToDatabaseStep" doc:id="0635642e-6535-4e67-a6e7-68e2b4a4b99f"
+                    acceptExpression="payload.IdInDB == null">
+                    <batch:aggregator doc:name="Batch Aggregator" doc:id="86dd7c8e-c76c-4167-8c04-c633833b764a"
+                        size="${page.size}">
+                        <ee:transform doc:name="SFDC Contact to DB Contact" doc:id="bc5c1683-cb2b-40be-9f10-47100e9ee673">
+                            <ee:message>
+                                <ee:set-payload><![CDATA[%dw 2.0
 output application/java
 ---
 payload map {
@@ -95,44 +88,44 @@ payload map {
 	Email: $.Email,
 	AccountName: $.Account.Name
 }]]></ee:set-payload>
-							</ee:message>
-						</ee:transform>
-						<db:bulk-insert config-ref="Database_Config"
-							doc:name="Bulk insert contacts to Database" doc:id="b87bbcfa-92c5-43ac-8351-ac3ee341450c">
-							<db:sql>INSERT INTO Contact (
-								FirstName,
-								LastName,
-								Name,
-								Phone,
-								Email,
-								LastModifiedDate,
-								LastModifiedById,
-								AccountName
-								) VALUES (
-								:FirstName,
-								:LastName,
-								:Name,
-								:Phone,
-								:Email,
-								CURRENT_TIMESTAMP(),
-								CURRENT_USER(),
-								:AccountName
-								)
-							</db:sql>
-						</db:bulk-insert>
-					</batch:aggregator>
-				</batch:step>
-			</batch:process-records>
-			<batch:on-complete>
-				<scatter-gather doc:name="Scatter-Gather" doc:id="ef2964ef-0b85-4c6c-a5ee-b834df639e7b">
-			<route>
-				<logger level="INFO" doc:name="Migration process has finished!" doc:id="b7575d38-7dbd-4602-9186-1bbb25234896" message="Migration process has finished!" />
-			</route>
-					<route>
- 						<ee:transform doc:name="Prepare migration result email"
- 							doc:id="c84b4bc4-5a65-41c1-9d0c-f1ebd3d8db7a">
- 							<ee:message>
- 								<ee:set-payload><![CDATA[%dw 2.0
+                            </ee:message>
+                        </ee:transform>
+                        <db:bulk-insert config-ref="Database_Config" doc:name="Bulk insert contacts to Database"
+                            doc:id="b87bbcfa-92c5-43ac-8351-ac3ee341450c">
+                            <db:sql>INSERT INTO Contact (
+                                FirstName,
+                                LastName,
+                                Name,
+                                Phone,
+                                Email,
+                                LastModifiedDate,
+                                LastModifiedById,
+                                AccountName
+                                ) VALUES (
+                                :FirstName,
+                                :LastName,
+                                :Name,
+                                :Phone,
+                                :Email,
+                                CURRENT_TIMESTAMP(),
+                                CURRENT_USER(),
+                                :AccountName
+                                )
+                            </db:sql>
+                        </db:bulk-insert>
+                    </batch:aggregator>
+                </batch:step>
+            </batch:process-records>
+            <batch:on-complete>
+                <scatter-gather doc:name="Scatter-Gather" doc:id="ef2964ef-0b85-4c6c-a5ee-b834df639e7b">
+                    <route>
+                        <logger level="INFO" doc:name="Migration process has finished!" doc:id="b7575d38-7dbd-4602-9186-1bbb25234896"
+                            message="Migration process has finished!" />
+                    </route>
+                    <route>
+                        <ee:transform doc:name="Prepare migration result email" doc:id="c84b4bc4-5a65-41c1-9d0c-f1ebd3d8db7a">
+                            <ee:message>
+                                <ee:set-payload><![CDATA[%dw 2.0
  output text/plain
  ---
  "Migration Report: \n"
@@ -143,26 +136,26 @@ payload map {
  ++ "\n Failed Records: "			++ payload.failedRecords!
  ++ "\n Loaded Records: "			++ payload.loadedRecords!
  ++ "\n Processed Records: " 		++ payload.processedRecords!]]></ee:set-payload>
- 							</ee:message>
- 						</ee:transform>
- 						<email:send config-ref="Gmail_SMTP" doc:name="Send migration result email"
- 							doc:id="5896eaa9-dd10-47a2-a6fc-6319b11dbd06" fromAddress="${mail.from}"
- 							subject="${mail.subject}">
- 							<email:to-addresses>
- 								<email:to-address value="${mail.to}" />
- 							</email:to-addresses>
- 						</email:send>
- 					</route>
-		</scatter-gather>
-			</batch:on-complete>
-		</batch:job>
-	</flow>
-	<flow name="mainFlow" doc:id="7c0a5bef-b3d5-442f-bff3-10d038f69a5e" >
-		<flow-ref doc:name="Trigger businessLogicFlow" doc:id="91360ede-4d71-44c7-9b64-8ee762e04ea0" name="businessLogicFlow"/>
-		<error-handler >
-			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="488b507d-e26c-4c56-8759-8bb4f6645d71" type="ANY">
-				<flow-ref doc:name="errorHandlingFlow" doc:id="afdaf73c-0137-4d60-84f6-5c41234771a3" name="errorHandlingFlow" />
-			</on-error-propagate>
-		</error-handler>
-	</flow>
+                            </ee:message>
+                        </ee:transform>
+                        <email:send config-ref="Gmail_SMTP" doc:name="Send migration result email" doc:id="5896eaa9-dd10-47a2-a6fc-6319b11dbd06"
+                            fromAddress="${mail.from}" subject="${mail.subject}">
+                            <email:to-addresses>
+                                <email:to-address value="${mail.to}" />
+                            </email:to-addresses>
+                        </email:send>
+                    </route>
+                </scatter-gather>
+            </batch:on-complete>
+        </batch:job>
+    </flow>
+    <flow name="mainFlow" doc:id="7c0a5bef-b3d5-442f-bff3-10d038f69a5e">
+        <flow-ref doc:name="Trigger businessLogicFlow" doc:id="91360ede-4d71-44c7-9b64-8ee762e04ea0" name="businessLogicFlow" />
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate"
+                doc:id="488b507d-e26c-4c56-8759-8bb4f6645d71" type="ANY">
+                <flow-ref doc:name="errorHandlingFlow" doc:id="afdaf73c-0137-4d60-84f6-5c41234771a3" name="errorHandlingFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
 </mule>
