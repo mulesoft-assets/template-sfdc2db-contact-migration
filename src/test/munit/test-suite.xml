@@ -19,48 +19,34 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
     <configuration-properties doc:name="Configuration properties" doc:id="15f05c46-a8fb-4158-858d-567c82a6251e"
         file="common.properties" />
     <munit:before-test name="test-suite-Before_Test" description="Before tests actions" doc:id="a3beaa88-70a2-40d5-b494-deacc5517499">
-        <ee:transform doc:name="Set unique testing numbers for sfdc query" doc:id="539b97d4-daf5-43c5-aab9-eba7759cfb5a">
-            <ee:message>
-            </ee:message>
-            <ee:variables>
-                <ee:set-variable variableName="uniqueNums"><![CDATA[%dw 2.0
-output application/java
----
-{
-	'firstNumber'  : 'Tester' ++ randomInt(1000) ++ 'test1',
-	'secondNumber' : 'Tester' ++ randomInt(1000) ++ 'test2'
-}]]></ee:set-variable>
-            </ee:variables>
-        </ee:transform>
-        <ee:transform doc:name="Set Salesforce query" doc:id="35f12de3-0d4c-4957-a622-e9b7e1aad34b">
-            <ee:message>
-            </ee:message>
-            <ee:variables>
-                <ee:set-variable variableName="sfdcData"><![CDATA[%dw 2.0
+        <set-variable value="#[uuid()[0 to 7]]" doc:name="Generate unique string" doc:id="85baa9ea-9240-47df-bfe2-d2d658249186" variableName="testId"/>
+		<ee:transform doc:name="Prepare test data" doc:id="323675a2-2794-4189-b845-4c4ff727bd2d" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="sfdcData" ><![CDATA[%dw 2.0
 output application/java
 ---
 [{	
-	FirstName: vars.uniqueNums.firstNumber,
+	FirstName: vars.testId ++ 'test1',
 	LastName: "TestLastName1",
 	Phone: "123-21-21-111111",
 	Email: "test@hotovo.org"
 },
 {	
-	FirstName: vars.uniqueNums.secondNumber,
+	FirstName: vars.testId ++ 'test2',
 	LastName: "TestLastName2",
 	Phone: "123-23-23-333333-777777",
 	Email: "updatedtestemail@hotovo.org"
 }
 ]]]></ee:set-variable>
-            </ee:variables>
-        </ee:transform>
-        <salesforce:create type="Contact" doc:name="Create contacts" doc:id="d8f6caf7-bc8e-4790-a6c3-721a7374b4bb"
+			</ee:variables>
+		</ee:transform>
+		<salesforce:create type="Contact" doc:name="Create test contacts" doc:id="d8f6caf7-bc8e-4790-a6c3-721a7374b4bb"
             config-ref="Salesforce_Sfdc_config">
             <salesforce:records><![CDATA[#[vars.sfdcData]]]></salesforce:records>
         </salesforce:create>
-        <set-variable value="#[payload map ($.id)]" doc:name="Set sfdcIds Variable" doc:id="816d3545-004c-467b-bf08-2539c07c811c"
-            variableName="sfdcIds" />
-        <ee:transform doc:name="Set Contact for DB" doc:id="50509b35-3f3d-4750-9d4c-729b7e419f29">
+		<ee:transform doc:name="Set Contact for DB and SFDC Contact Ids" doc:id="50509b35-3f3d-4750-9d4c-729b7e419f29">
             <ee:message>
             </ee:message>
             <ee:variables>
@@ -75,6 +61,10 @@ output application/java
 }
 
 ]]></ee:set-variable>
+				<ee:set-variable variableName="createdSFDCIds" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.*Id]]></ee:set-variable>
 			</ee:variables>
 		</ee:transform>
 		<db:insert doc:name="Insert Contact" doc:id="621fce25-085d-4105-84f3-04a81dcb0177" config-ref="Database_Config">
@@ -101,21 +91,27 @@ output application/java
     </munit:before-test>
     <munit:test name="test-suite-businessLogicFlowTest" description="Test" doc:id="3810e133-0828-431e-85e5-e1fd4f18d7d9">
         <munit:execution>
-            <flow-ref doc:name="Call businessLogicFlow" doc:id="d068e080-2d03-4237-a557-b84eb2548210" name="businessLogicFlow" />
-            <scripting:execute engine="groovy" doc:name="Wait for 10 seconds" doc:id="12482f9a-4216-449a-a0d7-289ac41def57">
-                <scripting:code>sleep(10000)</scripting:code>
+            <flow-ref doc:name="Call loadContactsFromSFDCFlow" doc:id="d77d0c8a-bcf5-4fb3-856c-37a543204906" name="loadContactsFromSFDCFlow"/>
+			<ee:transform doc:name="Filter test data" doc:id="fcd17ff4-1f63-4da0-a1c9-3081f6c0f278" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload filter (startsWith($.FirstName, vars.testId))]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="Call businessLogicFlow" doc:id="d068e080-2d03-4237-a557-b84eb2548210" name="businessLogicFlow" />
+            <scripting:execute engine="groovy" doc:name="Wait for 30 seconds" doc:id="12482f9a-4216-449a-a0d7-289ac41def57">
+                <scripting:code>sleep(30000)</scripting:code>
             </scripting:execute>
 			<db:select doc:name="Select first test contact" doc:id="f4a6b197-fadd-4a8f-9b44-e8a7e8e634f5" config-ref="Database_Config" target="resultCreate">
             <db:sql>SELECT ID FROM Contact WHERE FirstName = :firstName</db:sql>
-            <db:input-parameters><![CDATA[#[{'firstName' : vars.uniqueNums.firstNumber}]]]></db:input-parameters>
+            <db:input-parameters><![CDATA[#[{'firstName' : vars.sfdcData[0].FirstName}]]]></db:input-parameters>
         </db:select>
 			<db:select doc:name="Select second test contact" doc:id="2608a13a-ec86-4b29-a645-d293b3a105d2" config-ref="Database_Config" target="resultUpdate">
             <db:sql>SELECT Email FROM Contact WHERE FirstName = :firstName</db:sql>
-            <db:input-parameters><![CDATA[#[{'firstName' : vars.uniqueNums.secondNumber}]]]></db:input-parameters>
+            <db:input-parameters><![CDATA[#[{'firstName' : vars.sfdcData[1].FirstName}]]]></db:input-parameters>
         </db:select>
-			<salesforce:delete doc:name="Delete test Contacts" doc:id="46f32bb4-5c1f-440f-8e9a-4fadab199b14" config-ref="Salesforce_Sfdc_config">
-            <salesforce:delete-ids><![CDATA[#[vars.sfdcIds]]]></salesforce:delete-ids>
-        </salesforce:delete>
         </munit:execution>
 		<munit:validation >
 			<munit-tools:assert-that doc:name="Assert that first Contact was added to Database" doc:id="16839e8d-8196-4edc-b54b-ec2292b55731" is="#[MunitTools::equalTo(1)]" expression="#[sizeOf(vars.resultCreate)]" message="Contact wasn't added to Database"/>
@@ -123,11 +119,14 @@ output application/java
 		</munit:validation>
     </munit:test>
     <munit:after-test name="test-suite-After_Test" description="After tests actions" doc:id="34f07619-c9de-4d4c-af33-256f4ea8e01a">
+		<salesforce:delete doc:name="Delete test Contacts" doc:id="1b0f3a8c-52ad-4936-80bf-cd82762d7c3d" config-ref="Salesforce_Sfdc_config">
+			<salesforce:delete-ids ><![CDATA[#[vars.createdSFDCIds]]]></salesforce:delete-ids>
+		</salesforce:delete>
 		<db:delete doc:name="Delete test Contacts" doc:id="99515fc7-4f78-4973-830a-c74357d7c688" config-ref="Database_Config">
             <db:sql>DELETE FROM Contact WHERE FirstName IN (:firstName1, :firstName2)</db:sql>
             <db:input-parameters><![CDATA[#[{
-'firstName1' : vars.uniqueNums.firstNumber,
-'firstName2' : vars.uniqueNums.secondNumber
+'firstName1' : vars.sfdcData[0].FirstName,
+'firstName2' : vars.sfdcData[1].FirstName
 }]]]></db:input-parameters>
         </db:delete>
     </munit:after-test>

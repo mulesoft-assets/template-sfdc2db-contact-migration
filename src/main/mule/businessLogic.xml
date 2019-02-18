@@ -13,12 +13,7 @@ http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mu
 http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd">
 
     <flow name="businessLogicFlow" doc:id="5aa7011d-8abd-453d-9459-c7322838f14a">
-        <salesforce:query config-ref="Salesforce_Sfdc_config" doc:name="Contacts from Salesforce instance"
-            doc:id="fee8c43d-e435-46bf-b09c-0b0c02ec28f9">
-            <salesforce:salesforce-query>SELECT Email,FirstName,Id,LastModifiedDate, LastName,Name,Phone,Account.Name FROM Contact
-                WHERE LastModifiedDate &gt; ${migration.date}</salesforce:salesforce-query>
-        </salesforce:query>
-        <batch:job jobName="migrateContactsBatch" doc:id="af55c5cf-807b-4582-9868-66f144b0a8e9" blockSize="${page.size}">
+		<batch:job jobName="migrateContactsBatch" doc:id="af55c5cf-807b-4582-9868-66f144b0a8e9" blockSize="${page.size}">
             <batch:process-records>
                 <batch:step name="getContactInDatabaseStep" doc:id="b2f6d0eb-1dd2-4281-bd99-14cd169d9976">
                     <db:select config-ref="Database_Config" doc:name="query Contact from Database" doc:id="ea180723-75eb-4fcd-84e0-d9877b28fa48"
@@ -149,8 +144,20 @@ payload map {
             </batch:on-complete>
         </batch:job>
     </flow>
-    <flow name="mainFlow" doc:id="7c0a5bef-b3d5-442f-bff3-10d038f69a5e">
-        <flow-ref doc:name="Trigger businessLogicFlow" doc:id="91360ede-4d71-44c7-9b64-8ee762e04ea0" name="businessLogicFlow" />
+    <sub-flow name="loadContactsFromSFDCFlow" doc:id="04503c8a-0a3a-4eeb-8dea-318e06ab9011" >
+		<salesforce:query config-ref="Salesforce_Sfdc_config" doc:name="Contacts from Salesforce instance" doc:id="fee8c43d-e435-46bf-b09c-0b0c02ec28f9">
+            <salesforce:salesforce-query>SELECT Email,FirstName,Id,LastModifiedDate, LastName,Name,Phone,Account.Name FROM Contact
+                WHERE LastModifiedDate &gt; :migDate</salesforce:salesforce-query>
+			<salesforce:parameters><![CDATA[#[output application/java
+---
+{
+	"migDate" : p('migration.date')
+}]]]></salesforce:parameters>
+        </salesforce:query>
+	</sub-flow>
+	<flow name="mainFlow" doc:id="7c0a5bef-b3d5-442f-bff3-10d038f69a5e">
+        <flow-ref doc:name="Trigger loadContactsFromSFDCFlow" doc:id="19057c7d-f086-4263-a458-d42065063b86" name="loadContactsFromSFDCFlow"/>
+		<flow-ref doc:name="Trigger businessLogicFlow" doc:id="91360ede-4d71-44c7-9b64-8ee762e04ea0" name="businessLogicFlow" />
         <error-handler>
             <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate"
                 doc:id="488b507d-e26c-4c56-8759-8bb4f6645d71" type="ANY">
